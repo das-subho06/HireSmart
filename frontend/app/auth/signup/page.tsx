@@ -1,5 +1,4 @@
 "use client"
-
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -9,20 +8,40 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Briefcase, User, Building2 } from "lucide-react"
+import axios from "axios"
+import { CredentialResponse, GoogleLogin } from "@react-oauth/google"
 
 export default function SignUpPage() {
   const router = useRouter()
   const [role, setRole] = useState<"recruiter" | "candidate" | null>(null)
-
-  function handleSignUp(e: React.FormEvent) {
+  const [name, setName] = useState("");
+const [email, setEmail] = useState("");
+const [password, setPassword] = useState("");
+  async function handleSignUp(e: React.FormEvent) {
     e.preventDefault()
-    if (role === "recruiter") {
-      router.push("/recruiter/dashboard")
-    } else {
-      router.push("/candidate/dashboard")
+    try {
+      const res = await axios.post("/api/auth/signup", { email, password, name, role });
+      alert("Sign-up successful! Please sign in.");
+      router.push("/auth/signin");
+    } catch (error) {
+      alert(error.response?.data?.message || "Sign Up Failed");
     }
   }
-
+async function handleGoogleLogin(credentialResponse: CredentialResponse) {
+    if (!credentialResponse.credential) return;
+    // decode JWT
+    try {
+      const res = await axios.post("/api/auth/google", {
+        token: credentialResponse.credential,
+        role, // important: get role from selector
+      });
+      alert("Google sign-in successful!");
+      if (role === "recruiter") router.push("/recruiter/dashboard");
+      else router.push("/candidate/dashboard");
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Google sign-in failed");
+    }
+  }
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -69,30 +88,42 @@ export default function SignUpPage() {
 
               <div className="flex flex-col gap-2">
                 <Label htmlFor="name">Full Name</Label>
-                <Input id="name" type="text" placeholder="John Doe" required />
+                <Input id="name" type="text" placeholder="John Doe" 
+                value={name}
+  onChange={(e) => setName(e.target.value)} />
               </div>
 
               <div className="flex flex-col gap-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="you@example.com" required />
+                <Input id="email" type="email" placeholder="you@example.com" 
+                value={email}
+  onChange={(e) => setEmail(e.target.value)} />
               </div>
 
               <div className="flex flex-col gap-2">
                 <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" placeholder="Create a password" required />
+                <Input id="password" type="password" placeholder="Create a password" 
+                value={password}
+  onChange={(e) => setPassword(e.target.value)} />
               </div>
 
-              {role === "recruiter" && (
+              {/* {role === "recruiter" && (
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="company">Company Name</Label>
                   <Input id="company" type="text" placeholder="Your company" required />
                 </div>
-              )}
+              )} */}
 
               <Button type="submit" className="w-full" disabled={!role}>
                 Create Account
               </Button>
-
+  {/* Google login button */}
+      <div>
+        <GoogleLogin
+          onSuccess={handleGoogleLogin}
+          onError={() => alert("Google Sign In Failed")}
+        />
+      </div>
               <p className="text-center text-sm text-muted-foreground">
                 Already have an account?{" "}
                 <Link href="/auth/signin" className="font-medium text-primary hover:underline">

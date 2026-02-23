@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Navbar } from "@/components/navbar"
 import { CandidateCard } from "@/components/candidate-card"
@@ -9,13 +9,29 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { candidates } from "@/lib/mock-data"
 import { Search, Users, FileCheck, Star, Clock, LogOut } from "lucide-react"
+import axios from "axios"
 
 const statuses = ["All", "New", "Reviewed", "Shortlisted", "Rejected"] as const
 
 export default function RecruiterDashboard() {
+  const [company, setCompany] = useState("");
+  const [companySet, setCompanySet] = useState(false);
   const [search, setSearch] = useState("")
   const [activeStatus, setActiveStatus] = useState<string>("All")
-
+const [recruiterName, setRecruiterName] = useState("");
+useEffect(() => {
+    async function fetchRecruiter() {
+      try {
+        const res = await axios.get("/api/auth/me");
+        setCompany(res.data.user.company);
+        setRecruiterName(res.data.user.name);
+        if (res.data.user.company) setCompanySet(true);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    fetchRecruiter();
+  }, []);
   const filtered = candidates.filter((c) => {
     const matchesSearch =
       c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -48,8 +64,15 @@ export default function RecruiterDashboard() {
   ]
 
   return (
+    
     <div className="min-h-screen bg-background">
+      <div className={companySet ? "" : "filter blur-sm pointer-events-none"}>
+
+  
       <Navbar />
+      <div className="flex gap-2 font-serif text-3xl font-bold tracking-tight text-foreground 
+      h-20 w-200 items-center justify-center rounded-lg bg-primary/10 ml-100 mt-2 "> <h1>Welcome, {recruiterName}!</h1><p>Company: {company}</p></div>
+        
       <main className="mx-auto max-w-7xl px-6 py-8">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -139,6 +162,34 @@ export default function RecruiterDashboard() {
           </div>
         )}
       </main>
+          </div>
+         {!companySet && (
+      <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
+        <div className="rounded-xl bg-card p-8 shadow-lg w-96 backdrop-blur-md">
+          <h2 className="text-xl font-bold mb-4">Heyyy recruiter! Do not forget to enter the company you belong to</h2>
+          <Input
+            placeholder="Company Name"
+            value={company}
+            onChange={(e) => setCompany(e.target.value)}
+          />
+        <button
+              className="mt-4 w-full bg-primary text-white p-2 rounded"
+              onClick={async () => {
+                if (!company.trim()) return alert("Please enter a company name");
+                try {
+                  await axios.patch("/api/auth/me", { company });
+                  setCompanySet(true);
+                } catch (err) {
+                  console.error(err);
+                  alert("Failed to update company");
+                }
+              }}
+            >
+              Continue
+            </button>
+        </div>
+      </div>
+    )} 
     </div>
   )
 }

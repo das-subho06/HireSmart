@@ -1,6 +1,5 @@
 "use client"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Navbar } from "@/components/navbar"
 import { Input } from "@/components/ui/input"
@@ -8,10 +7,23 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { companies } from "@/lib/mock-data"
 import { Search, MapPin, Briefcase, ArrowRight, LogOut } from "lucide-react"
+import axios from "axios"
 
 export default function CandidateDashboard() {
   const [search, setSearch] = useState("")
-
+const [candidateName, setCandidateName] = useState("");
+useEffect(() => {
+    async function fetchCandidate() {
+      try {
+        const res = await axios.get("/api/auth/me");
+        setCandidateName(res.data.user.name);
+       
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    fetchCandidate();
+  }, []);
   const filtered = companies.filter(
     (c) =>
       c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -22,6 +34,8 @@ export default function CandidateDashboard() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
+      <div className="flex gap-2 font-serif text-3xl font-bold tracking-tight text-foreground 
+      h-20 w-200 items-center justify-center rounded-lg bg-primary/10 ml-100 mt-2 "> <h1>Welcome, {candidateName}!</h1></div>
       <main className="mx-auto max-w-7xl px-6 py-8">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
           <div>
