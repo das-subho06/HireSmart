@@ -12,6 +12,9 @@ import axios from "axios"
 export default function CandidateDashboard() {
   const [search, setSearch] = useState("")
 const [candidateName, setCandidateName] = useState("");
+  const [hasResume, setHasResume] = useState(false); // track if candidate uploaded resume
+  const [showModal, setShowModal] = useState(false);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
 useEffect(() => {
     async function fetchCandidate() {
       try {
@@ -30,7 +33,15 @@ useEffect(() => {
       c.industry.toLowerCase().includes(search.toLowerCase()) ||
       c.location.toLowerCase().includes(search.toLowerCase())
   )
-
+ const handleCompanyClick = (companyId: string) => {
+    if (!hasResume) {
+      setSelectedCompanyId(companyId);
+      setShowModal(true);
+    } else {
+      // redirect normally if resume exists
+      window.location.href = `/candidate/company/${companyId}`;
+    }
+  };
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -66,14 +77,24 @@ useEffect(() => {
         </div>
 
         {/* Companies Grid */}
-        <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div 
+        className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filtered.map((company) => (
             <Link
               key={company.id}
               href={`/candidate/company/${company.id}`}
               className="group"
             >
-              <div className="flex h-full flex-col rounded-xl border border-border bg-card p-6 transition-all group-hover:border-primary/30 group-hover:shadow-lg group-hover:shadow-primary/5">
+              <div 
+              onClick={(e) => {
+                e.preventDefault(); // prevent default link behavior
+      if (!hasResume) {
+        setSelectedCompanyId(company.id);
+        setShowModal(true);
+      } else {
+        window.location.href = `/candidate/company/${company.id}`;
+      }
+    }} className="flex h-full flex-col rounded-xl border border-border bg-card p-6 transition-all group-hover:border-primary/30 group-hover:shadow-lg group-hover:shadow-primary/5">
                 <div className="flex items-center gap-4">
                   <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-primary/10 font-mono text-lg font-bold text-primary">
                     {company.logo}
@@ -103,7 +124,9 @@ useEffect(() => {
                       {company.openRoles} roles
                     </span>
                   </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
+                  <ArrowRight 
+                  className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" 
+                   />
                 </div>
               </div>
             </Link>
@@ -119,6 +142,24 @@ useEffect(() => {
           </div>
         )}
       </main>
+       {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-xl p-6 max-w-sm text-center">
+            <h2 className="text-lg font-bold mb-4">Upload Resume First</h2>
+            <p className="text-sm text-muted-foreground mb-6">
+              You need to upload your resume before viewing company details.
+            </p>
+            <div className="flex justify-center gap-4">
+              <Button onClick={() => setShowModal(false)} variant="outline">
+                Cancel
+              </Button>
+              <Link href="/candidate/upload-resume">
+                <Button>Continue</Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
