@@ -48,7 +48,14 @@ const CandidateSchema = new Schema<ICandidate>(
     jobRoles: { type: [String], required: true },
     technicalSkills: { type: [String], required: true },
     githubLink: { type: String },
-    experience: { type: String, required: true },
+    experience: [
+      {
+        role: { type: String },
+    company: { type: String },
+    startDate: { type: Date },
+    endDate: { type: Date },
+      }
+    ],
     startDate: { type: String, required: true },
     resumeFileUrl: { type: String, required: true },
     workExperience: { type: [WorkExperienceSchema], default: [] },

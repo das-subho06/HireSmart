@@ -6,8 +6,10 @@ import {
   ArrowLeft,
   Edit2,
   MapPin,
+  MessageCircle,
   Phone,
 } from "lucide-react"; 
+import { set } from "mongoose";
 
 interface Service {
   name: string;
@@ -19,19 +21,70 @@ interface WorkExperience {
   startDate: string;
   endDate: string;
 }
-
+const TECHNICAL_SKILLS = [
+  'JavaScript',
+  'TypeScript',
+  'Python',
+  'Java',
+  'C++',
+  'C#',
+  'Go',
+  'Rust',
+  'Ruby',
+  'PHP',
+  'SQL',
+  'NoSQL',
+  'React',
+  'Next.js',
+  'Node.js',
+  'Express.js',
+  'Django',
+  'Flask',
+  'Spring Boot',
+  'Angular',
+  'Vue.js',
+  'HTML',
+  'CSS',
+  'Tailwind CSS',
+  'SASS/SCSS',
+  'GraphQL',
+  'REST API Development',
+  'Docker',
+  'Kubernetes',
+  'AWS',
+  'Azure',
+  'GCP',
+  'CI/CD',
+  'Git & GitHub',
+  'Unit Testing / Jest',
+  'Selenium',
+  'Machine Learning',
+  'Deep Learning',
+  'Data Analysis / Pandas',
+  'Data Visualization / D3.js',
+  'TensorFlow',
+  'PyTorch',
+  'MongoDB',
+  'PostgreSQL',
+  'MySQL',
+  'Redis',
+  'ElasticSearch',
+  'Blockchain',
+];
 export default function Profile() {
   const [isEditing, setIsEditing] = useState<string | null>(null);
   const [profileName, setProfileName] = useState("");
   const [profileDescription, setProfileDescription] = useState("");
   const [location, setLocation] = useState("");
   const [contact, setContact] = useState("");
-  const [services, setServices] = useState<Service[]>([]);
+  const [services, setServices] = useState<string[]>([]);
+const [originalServices, setOriginalServices] = useState<string[]>([]);
   const [experience, setExperience] = useState<WorkExperience[]>([]);
   const [resumeHeadline, setResumeHeadline] = useState("");
 const [githubLink, setGithubLink] = useState("");
 const [resumeFileUrl, setResumeFileUrl] = useState("");
 const [yearsOfExperience, setYearsOfExperience] = useState("");
+const [email, setEmail] = useState("");
   // Fetch candidate data
   useEffect(() => {
     const fetchCandidate = async () => {
@@ -40,8 +93,10 @@ const [yearsOfExperience, setYearsOfExperience] = useState("");
           withCredentials: true,
         });
         const data = res.data.candidate;
-
         if (data) {
+          const skills = data.technicalSkills || [];
+          setServices([...skills]); 
+  setOriginalServices([...skills]); // separate copy
           setProfileName(data.name || "");
           setProfileDescription(data.profileSummary || "");
           setLocation(data.location || "");
@@ -51,9 +106,10 @@ const [yearsOfExperience, setYearsOfExperience] = useState("");
   setResumeHeadline(data.resumeHeadline || "");
   setGithubLink(data.githubLink || "");
   setResumeFileUrl(data.resumeFileUrl || "");
-          setServices(
-            data.technicalSkills?.map((skill: string) => ({ name: skill })) || []
-          );
+  setEmail(data.email || "");
+          // setServices(
+          //   data.technicalSkills?.map((skill: string) => ({ name: skill })) || []
+          // );
         }
       } catch (err) {
         console.error("Error fetching candidate:", err);
@@ -64,13 +120,10 @@ const [yearsOfExperience, setYearsOfExperience] = useState("");
   }, []);
 
   const handleEdit = (section: string) => {
+    if (section === "services" && isEditing !== "services") {
+    setServices([...originalServices]); // restore original values
+  }
     setIsEditing(isEditing === section ? null : section);
-  };
-
-  const handleServiceChange = (index: number, value: string) => {
-    const newServices = [...services];
-    newServices[index].name = value;
-    setServices(newServices);
   };
 
   const handleExperienceChange = (
@@ -82,7 +135,31 @@ const [yearsOfExperience, setYearsOfExperience] = useState("");
     newExp[index][field] = value;
     setExperience(newExp);
   };
+const handleSave = async (section: string) => {
+  try {
+    await axios.patch(
+      "/api/auth/profile",
+      
+        {
+  name: profileName,
+  profileSummary: profileDescription,
+  resumeHeadline,
+  experience: yearsOfExperience,     // string
+  workExperience: experience,        // array
+  technicalSkills: services,
+  location,
+  email,
+  contact,
+},
+      { withCredentials: true }
+    );
 
+    setIsEditing(null); // close edit mode
+    alert("Profile updated successfully!");
+  } catch (error) {
+    console.error("Error updating profile:", error);
+  }
+};
   return (
     <div className="min-h-screen bg-white">
       <div className="container mx-auto px-6 py-12">
@@ -119,6 +196,12 @@ const [yearsOfExperience, setYearsOfExperience] = useState("");
                   className="w-full px-4 py-2 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[120px]"
                   placeholder="Profile Summary"
                 />
+                  <button
+      onClick={() => handleSave("profile")}
+      className="bg-blue-600 text-white px-4 py-2 rounded-lg"
+    >
+      Save
+    </button>
               </div>
             ) : (
               <>
@@ -143,13 +226,13 @@ const [yearsOfExperience, setYearsOfExperience] = useState("");
           </div>
           <div className="bg-gradient-to-br from-blue-50 to-white border border-blue-100 rounded-3xl p-8 relative">
     <button
-              onClick={() => handleEdit("profile")}
+              onClick={() => handleEdit("resume")}
               className="absolute top-6 right-6 p-2 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow"
             >
               <Edit2 className="w-4 h-4 text-blue-600" />
             </button>
 
-            {isEditing === "profile" ? (
+            {isEditing === "resume" ? (
               <div className="space-y-4">
                 <textarea
                   value={resumeHeadline}
@@ -157,6 +240,12 @@ const [yearsOfExperience, setYearsOfExperience] = useState("");
                   className="w-full px-4 py-2 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[120px]"
                   placeholder="Resume Headline"
                 />
+                  <button
+      onClick={() => handleSave("resume")}
+      className="bg-blue-600 text-white px-4 py-2 rounded-lg"
+    >
+      Save
+    </button>
               </div>
             ) : (
               <>
@@ -237,6 +326,12 @@ const [yearsOfExperience, setYearsOfExperience] = useState("");
                       }
                       className="w-full px-4 py-2 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
+                      <button
+      onClick={() => handleSave("experience")}
+      className="bg-blue-600 text-white px-4 py-2 rounded-lg"
+    >
+      Save
+    </button>
                   </div>
                 ))}
               </div>
@@ -254,7 +349,8 @@ const [yearsOfExperience, setYearsOfExperience] = useState("");
       <span className="text-blue-600 mr-3 mt-1">»</span>
       <div>
         <span className="text-gray-600">
-          {exp.startDate} - {exp.endDate}
+          {new Date(exp.startDate).toLocaleDateString("en-IN")} -{" "}
+{new Date(exp.endDate).toLocaleDateString("en-IN")}
         </span>
         <span className="text-gray-400 mx-2">—</span>
         <span className="text-gray-900 font-medium">{exp.role}</span>
@@ -281,32 +377,45 @@ const [yearsOfExperience, setYearsOfExperience] = useState("");
 
             {isEditing === "services" ? (
               <div className="space-y-3">
-                {services.map((service, index) => (
-                  <input
-                    key={index}
-                    type="text"
-                    value={service.name}
-                    onChange={(e) => handleServiceChange(index, e.target.value)}
-                    className="w-full px-4 py-2 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Service"
-                  />
-                ))}
+                {TECHNICAL_SKILLS.map((skill) => (
+  <label key={skill} className="flex items-center space-x-2">
+    <input
+      type="checkbox"
+      checked={services.includes(skill)}
+      onChange={(e) => {
+        if (e.target.checked) {
+          setServices([...services, skill]);
+        } else {
+          setServices(services.filter((s) => s !== skill));
+        }
+      }}
+      className="accent-blue-600"
+    />
+    <span>{skill}</span>
+  </label>
+))}
+                  <button
+      onClick={() => handleSave("services")}
+      className="bg-blue-600 text-white px-4 py-2 rounded-lg"
+    >
+      Save
+    </button>
               </div>
             ) : (
               <div className="space-y-4">
-                {services.map((service, index) => (
-                  <div key={index} className="flex items-center">
-                    <span className="text-blue-600 mr-3">✦</span>
-                    <span className="text-gray-900">{service.name}</span>
-                  </div>
-                ))}
+                {services.map((skill) => (
+  <div key={skill} className="flex items-center">
+    <span className="text-blue-600 mr-3">✦</span>
+    <span className="text-gray-900">{skill}</span>
+  </div>
+))}
               </div>
             )}
           </div>
         </div>
 
         {/* Stats: Contact & Location */}
-        <div className="grid grid-cols-3 md:grid-cols-3 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-4 md:grid-cols-4 lg:grid-cols-4 gap-6">
           <div className="bg-gradient-to-br from-blue-50 to-white border border-blue-100 rounded-3xl p-8">
   <h3 className="text-gray-900 font-medium mb-1">GitHub</h3>
   {githubLink ? (
@@ -314,7 +423,7 @@ const [yearsOfExperience, setYearsOfExperience] = useState("");
       href={githubLink}
       target="_blank"
       rel="noopener noreferrer"
-      className="text-blue-600 underline"
+      className="text-blue-600 underline items-center overflow-x-auto"
     >
       {githubLink}
     </a>
@@ -322,17 +431,112 @@ const [yearsOfExperience, setYearsOfExperience] = useState("");
     <p className="text-gray-600 text-sm uppercase tracking-wider">No GitHub link added</p>
   )}
 </div>
-          <div className="bg-gradient-to-br from-blue-50 to-white border border-blue-100 rounded-3xl p-8">
-            <MapPin className="w-8 h-8 text-blue-600 mb-3" />
-            <div className="text-gray-900 font-medium mb-1">{location}</div>
-            <div className="text-gray-600 text-sm uppercase tracking-wider">Location</div>
+          <div className="relative bg-gradient-to-br from-blue-50 to-white border border-blue-100 rounded-3xl p-8">
+             <button
+              onClick={() => handleEdit("location")}
+              className="absolute top-6 right-6 p-2 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow"
+            >
+              <Edit2 className="w-4 h-4 text-blue-600" />
+            </button>
+
+            <h3 className="text-2xl font-bold text-gray-900 mb-6">Location</h3>
+
+            {isEditing === "location" ? (
+              <div className="space-y-3">
+                <input
+                  type="text"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  className="w-full px-4 py-2 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Location"
+                />
+                  <button
+      onClick={() => handleSave("location")}
+      className="bg-blue-600 text-white px-4 py-2 rounded-lg"
+    >
+      Save
+    </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center">
+                  <MapPin className="w-5 h-5 text-blue-600 mr-3" />
+                  <span className="text-gray-900">{location}</span>
+                </div>
+              </div>
+            )}
+          </div>     
+          <div className="relative bg-gradient-to-br from-blue-50 to-white border border-blue-100 rounded-3xl p-8">
+             <button
+              onClick={() => handleEdit("contact")}
+              className="absolute top-6 right-6 p-2 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow"
+            >
+              <Edit2 className="w-4 h-4 text-blue-600" />
+            </button>
+
+            <h3 className="text-2xl font-bold text-gray-900 mb-6">Contact</h3>
+
+            {isEditing === "contact" ? (
+              <div className="space-y-3">
+                <input
+                  type="text"
+                  value={contact}
+                  onChange={(e) => setContact(e.target.value)}
+                  className="w-full px-4 py-2 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Contact"
+                />
+                  <button
+      onClick={() => handleSave("contact")}
+      className="bg-blue-600 text-white px-4 py-2 rounded-lg"
+    >
+      Save
+    </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center">
+                  <Phone className="w-5 h-5 text-blue-600 mr-3" />
+                  <span className="text-gray-900">{contact}</span>
+                </div>
+              </div>
+            )}
+          </div>
+<div className="relative bg-gradient-to-br from-blue-50 to-white border border-blue-100 rounded-3xl p-8">
+            <button
+              onClick={() => handleEdit("email")}
+              className="absolute top-6 right-6 p-2 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow"
+            >
+              <Edit2 className="w-4 h-4 text-blue-600" />
+            </button>
+
+            <h3 className="text-2xl font-bold text-gray-900 mb-6">Email</h3>
+
+            {isEditing === "email" ? (
+              <div className="space-y-3">
+                <input
+                  type="text"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full px-4 py-2 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Email"
+                />
+                  <button
+      onClick={() => handleSave("email")}
+      className="bg-blue-600 text-white px-4 py-2 rounded-lg"
+    >
+      Save
+    </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center">
+                  <MessageCircle className="w-5 h-5 text-blue-600 mr-3" />
+                  <span className="text-gray-900">{email}</span>
+                </div>
+              </div>
+            )}
           </div>
 
-          <div className="bg-gradient-to-br from-blue-50 to-white border border-blue-100 rounded-3xl p-8">
-            <Phone className="w-8 h-8 text-blue-600 mb-3" />
-            <div className="text-gray-900 font-medium mb-1">{contact}</div>
-            <div className="text-gray-600 text-sm uppercase tracking-wider">Contact Info</div>
-          </div>
         </div>
       </div>
     </div>
