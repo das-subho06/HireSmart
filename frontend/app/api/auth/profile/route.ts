@@ -10,11 +10,14 @@ export async function GET(request: NextRequest) {
     if (!token) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
+    console.log(decoded);
     const user = await User.findById(decoded.userId).select("name email role company");
     if (!user) return NextResponse.json({ message: "User not found" }, { status: 404 });
 
     const candidate = await Candidate.findOne({ userId: user._id });
     if (!candidate) return NextResponse.json({ message: "Candidate not found" }, { status: 404 });
 
-    return NextResponse.json({ candidate });
+    return NextResponse.json({ user, candidate });
+    ;
 }
+

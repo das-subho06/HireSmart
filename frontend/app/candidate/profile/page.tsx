@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import axios from "axios";
@@ -8,7 +7,7 @@ import {
   Edit2,
   MapPin,
   Phone,
-} from "lucide-react"; // or your icons
+} from "lucide-react"; 
 
 interface Service {
   name: string;
@@ -29,7 +28,10 @@ export default function Profile() {
   const [contact, setContact] = useState("");
   const [services, setServices] = useState<Service[]>([]);
   const [experience, setExperience] = useState<WorkExperience[]>([]);
-
+  const [resumeHeadline, setResumeHeadline] = useState("");
+const [githubLink, setGithubLink] = useState("");
+const [resumeFileUrl, setResumeFileUrl] = useState("");
+const [yearsOfExperience, setYearsOfExperience] = useState("");
   // Fetch candidate data
   useEffect(() => {
     const fetchCandidate = async () => {
@@ -45,6 +47,10 @@ export default function Profile() {
           setLocation(data.location || "");
           setContact(data.phone || "");
           setExperience(data.workExperience || []);
+          setYearsOfExperience(data.experience || "");
+  setResumeHeadline(data.resumeHeadline || "");
+  setGithubLink(data.githubLink || "");
+  setResumeFileUrl(data.resumeFileUrl || "");
           setServices(
             data.technicalSkills?.map((skill: string) => ({ name: skill })) || []
           );
@@ -89,7 +95,7 @@ export default function Profile() {
         </Link>
 
         {/* Profile Top Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+        <div className="grid grid-cols-2 lg:grid-cols-2 gap-8 mb-12">
           <div className="bg-gradient-to-br from-blue-50 to-white border border-blue-100 rounded-3xl p-8 relative">
             <button
               onClick={() => handleEdit("profile")}
@@ -135,6 +141,47 @@ export default function Profile() {
               </div>
             </div>
           </div>
+          <div className="bg-gradient-to-br from-blue-50 to-white border border-blue-100 rounded-3xl p-8 relative">
+    <button
+              onClick={() => handleEdit("profile")}
+              className="absolute top-6 right-6 p-2 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow"
+            >
+              <Edit2 className="w-4 h-4 text-blue-600" />
+            </button>
+
+            {isEditing === "profile" ? (
+              <div className="space-y-4">
+                <textarea
+                  value={resumeHeadline}
+                  onChange={(e) => setResumeHeadline(e.target.value)}
+                  className="w-full px-4 py-2 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[120px]"
+                  placeholder="Resume Headline"
+                />
+              </div>
+            ) : (
+              <>
+                <h3 className="text-xl font-bold mb-2">Resume Headline</h3>
+                <p className="text-gray-600 leading-relaxed">
+                  {resumeHeadline}
+                </p>
+              </>
+            )}
+</div>
+<div className="bg-gradient-to-br from-blue-50 to-white border border-blue-100 rounded-3xl p-8 relative">
+  <h3 className="text-xl font-bold mb-2">Resume Document</h3>
+  {resumeFileUrl ? (
+    <a
+      href={resumeFileUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+    >
+      View / Download Resume
+    </a>
+  ) : (
+    <p className="text-gray-500">No resume uploaded</p>
+  )}
+</div>
         </div>
 
         {/* Experience & Services */}
@@ -195,18 +242,28 @@ export default function Profile() {
               </div>
             ) : (
               <div className="space-y-4">
-                {experience.map((exp, index) => (
-                  <div key={index} className="flex items-start">
-                    <span className="text-blue-600 mr-3 mt-1">»</span>
-                    <div>
-                      <span className="text-gray-600">{exp.startDate} - {exp.endDate}</span>
-                      <span className="text-gray-400 mx-2">—</span>
-                      <span className="text-gray-900 font-medium">{exp.role}</span>
-                      <span className="text-gray-400 mx-2">—</span>
-                      <span className="text-gray-600">{exp.company}</span>
-                    </div>
-                  </div>
-                ))}
+                {yearsOfExperience === "Fresher" ? (
+  <div className="text-blue-600 font-semibold text-lg">
+    🚀 Ready to get a job!
+  </div>
+) : experience.length === 0 ? (
+  <div className="text-gray-500">No experience added</div>
+) : (
+  experience.map((exp, index) => (
+    <div key={index} className="flex items-start">
+      <span className="text-blue-600 mr-3 mt-1">»</span>
+      <div>
+        <span className="text-gray-600">
+          {exp.startDate} - {exp.endDate}
+        </span>
+        <span className="text-gray-400 mx-2">—</span>
+        <span className="text-gray-900 font-medium">{exp.role}</span>
+        <span className="text-gray-400 mx-2">—</span>
+        <span className="text-gray-600">{exp.company}</span>
+      </div>
+    </div>
+  ))
+)}
               </div>
             )}
           </div>
@@ -220,7 +277,7 @@ export default function Profile() {
               <Edit2 className="w-4 h-4 text-blue-600" />
             </button>
 
-            <h3 className="text-2xl font-bold text-gray-900 mb-6">What I do</h3>
+            <h3 className="text-2xl font-bold text-gray-900 mb-6">What I know</h3>
 
             {isEditing === "services" ? (
               <div className="space-y-3">
@@ -249,7 +306,22 @@ export default function Profile() {
         </div>
 
         {/* Stats: Contact & Location */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-3 md:grid-cols-3 lg:grid-cols-3 gap-6">
+          <div className="bg-gradient-to-br from-blue-50 to-white border border-blue-100 rounded-3xl p-8">
+  <h3 className="text-gray-900 font-medium mb-1">GitHub</h3>
+  {githubLink ? (
+    <a
+      href={githubLink}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-blue-600 underline"
+    >
+      {githubLink}
+    </a>
+  ) : (
+    <p className="text-gray-600 text-sm uppercase tracking-wider">No GitHub link added</p>
+  )}
+</div>
           <div className="bg-gradient-to-br from-blue-50 to-white border border-blue-100 rounded-3xl p-8">
             <MapPin className="w-8 h-8 text-blue-600 mb-3" />
             <div className="text-gray-900 font-medium mb-1">{location}</div>

@@ -1,3 +1,5 @@
+import path from "path";
+import fs from "fs/promises";
 import { NextRequest, NextResponse } from "next/server";
 import {connectDb} from "@/lib/connectDb";
 import jwt from "jsonwebtoken";
@@ -11,6 +13,7 @@ export async function POST(req: NextRequest) {
   if (!token) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
   const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
+  console.log(decoded);
   const user = await User.findById(decoded.userId);
   if (!user) return NextResponse.json({ message: "User not found" }, { status: 404 });
 
@@ -33,9 +36,50 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: "Missing required fields" }, { status: 400 });
   }
 
-  const resumeFileUrl = `/uploads/${resumeFile.name}`; // replace with actual storage
+// Create uploads folder if not exists
+const uploadDir = path.join(process.cwd(), "public", "uploads");
+await fs.mkdir(uploadDir, { recursive: true });
 
-  const candidate = await Candidate.create({
+// Make filename safe
+const safeFileName = resumeFile.name.replace(/\s+/g, "-");
+
+// Convert file to buffer
+const bytes = await resumeFile.arrayBuffer();
+const buffer = Buffer.from(bytes);
+
+// Save file
+const filePath = path.join(uploadDir, safeFileName);
+await fs.writeFile(filePath, buffer);
+
+// Store public URL
+const resumeFileUrl = `/uploads/${safeFileName}`;
+
+  const existingCandidate = await Candidate.findOne({ userId: user._id });
+
+let candidate;
+
+if (existingCandidate) {
+  candidate = await Candidate.findOneAndUpdate(
+    { userId: user._id },
+    {
+      name,
+      email,
+      phone,
+      location,
+      profileSummary,
+      resumeHeadline,
+      jobRoles,
+      technicalSkills,
+      githubLink,
+      experience,
+      startDate,
+      resumeFileUrl,
+      workExperience,
+    },
+    { new: true }
+  );
+} else {
+  candidate = await Candidate.create({
     userId: user._id,
     name,
     email,
@@ -49,8 +93,8 @@ export async function POST(req: NextRequest) {
     experience,
     startDate,
     resumeFileUrl,
-    workExperience
+    workExperience,
   });
-
+}
   return NextResponse.json({ message: "Resume uploaded successfully", candidate });
 }

@@ -8,45 +8,64 @@ import { Button } from "@/components/ui/button"
 import { companies } from "@/lib/mock-data"
 import { Search, MapPin, Briefcase, ArrowRight, LogOut } from "lucide-react"
 import axios from "axios"
-
+import { useRouter } from "next/navigation"
 export default function CandidateDashboard() {
-  const [search, setSearch] = useState("")
-const [candidateName, setCandidateName] = useState("");
-  const [hasResume, setHasResume] = useState(false); // track if candidate uploaded resume
+  const [search, setSearch] = useState("");
+  const [candidateName, setCandidateName] = useState("");
+  const [hasResume, setHasResume] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
-useEffect(() => {
-    async function fetchCandidate() {
-      try {
-        const res = await axios.get("/api/auth/me");
-        setCandidateName(res.data.user.name);
-       
-      } catch (err) {
-        console.error(err);
-      }
+  const router = useRouter();
+const fetchCandidate = async () => {
+    try {
+      const res = await axios.get("/api/auth/me");
+      setCandidateName(res.data.user.name);
+       const profileRes = await axios.get("/api/auth/profile",{
+        withCredentials: true,
+       });
+      setHasResume(!!profileRes.data.candidate?.resumeFileUrl); // true if resume exists
+    } catch (err) {
+      console.error(err);
     }
+  };
+  // Fetch candidate data and check resume
+  useEffect(() => {
     fetchCandidate();
   }, []);
+
+  // If resume exists and user had clicked a company, redirect automatically
+  useEffect(() => {
+    if (hasResume && selectedCompanyId) {
+      router.push(`/candidate/company/${selectedCompanyId}`);
+    }
+  }, [hasResume, selectedCompanyId, router]);
+
   const filtered = companies.filter(
     (c) =>
       c.name.toLowerCase().includes(search.toLowerCase()) ||
       c.industry.toLowerCase().includes(search.toLowerCase()) ||
       c.location.toLowerCase().includes(search.toLowerCase())
-  )
- const handleCompanyClick = (companyId: string) => {
+  );
+
+  const handleCompanyClick = (companyId: string) => {
     if (!hasResume) {
       setSelectedCompanyId(companyId);
       setShowModal(true);
     } else {
-      // redirect normally if resume exists
-      window.location.href = `/candidate/company/${companyId}`;
+      router.push(`/candidate/company/${companyId}`);
     }
   };
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <div className="flex gap-2 font-serif text-3xl font-bold tracking-tight text-foreground 
-      h-20 w-200 items-center justify-center rounded-lg bg-primary/10 ml-100 mt-2 "> <h1>Welcome, {candidateName}!</h1></div>
+
+      {/* Welcome Banner */}
+      <div onClick={()=>{router.push("/candidate/profile")}}
+      className="flex gap-2 font-serif text-3xl font-bold tracking-tight text-foreground h-20 items-center justify-center rounded-lg bg-primary/10 mt-2">
+        <h1>Welcome, {candidateName}!</h1>
+      </div>
+
       <main className="mx-auto max-w-7xl px-6 py-8">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -57,10 +76,10 @@ useEffect(() => {
               Discover opportunities at top companies hiring now
             </p>
           </div>
+
           <Button variant="outline" className="mt-4 gap-2 sm:mt-0" asChild>
             <Link href="/">
-              <LogOut className="h-4 w-4" />
-              Sign Out
+              <LogOut className="h-4 w-4" /> Sign Out
             </Link>
           </Button>
         </div>
@@ -77,72 +96,56 @@ useEffect(() => {
         </div>
 
         {/* Companies Grid */}
-        <div 
-        className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filtered.map((company) => (
-            <Link
+            <div
               key={company.id}
-              href={`/candidate/company/${company.id}`}
-              className="group"
+              onClick={() => handleCompanyClick(company.id)}
+              className="cursor-pointer flex h-full flex-col rounded-xl border border-border bg-card p-6 transition-all group hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5"
             >
-              <div 
-              onClick={(e) => {
-                e.preventDefault(); // prevent default link behavior
-      if (!hasResume) {
-        setSelectedCompanyId(company.id);
-        setShowModal(true);
-      } else {
-        window.location.href = `/candidate/company/${company.id}`;
-      }
-    }} className="flex h-full flex-col rounded-xl border border-border bg-card p-6 transition-all group-hover:border-primary/30 group-hover:shadow-lg group-hover:shadow-primary/5">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-primary/10 font-mono text-lg font-bold text-primary">
-                    {company.logo}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h2 className="truncate font-mono text-lg font-semibold text-foreground">
-                      {company.name}
-                    </h2>
-                    <Badge variant="secondary" className="mt-1 text-xs font-normal">
-                      {company.industry}
-                    </Badge>
-                  </div>
+              <div className="flex items-center gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-primary/10 font-mono text-lg font-bold text-primary">
+                  {company.logo}
                 </div>
-
-                <p className="mt-4 flex-1 text-sm leading-relaxed text-muted-foreground">
-                  {company.description}
-                </p>
-
-                <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <MapPin className="h-3 w-3" />
-                      {company.location}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Briefcase className="h-3 w-3" />
-                      {company.openRoles} roles
-                    </span>
-                  </div>
-                  <ArrowRight 
-                  className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" 
-                   />
+                <div className="min-w-0 flex-1">
+                  <h2 className="truncate font-mono text-lg font-semibold text-foreground">
+                    {company.name}
+                  </h2>
+                  <Badge variant="secondary" className="mt-1 text-xs font-normal">
+                    {company.industry}
+                  </Badge>
                 </div>
               </div>
-            </Link>
+
+              <p className="mt-4 flex-1 text-sm leading-relaxed text-muted-foreground">
+                {company.description}
+              </p>
+
+              <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
+                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <MapPin className="h-3 w-3" /> {company.location}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Briefcase className="h-3 w-3" /> {company.openRoles} roles
+                  </span>
+                </div>
+                <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
+              </div>
+            </div>
           ))}
         </div>
 
         {filtered.length === 0 && (
           <div className="mt-16 text-center">
             <p className="text-lg font-medium text-muted-foreground">No companies found</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Try adjusting your search
-            </p>
+            <p className="mt-1 text-sm text-muted-foreground">Try adjusting your search</p>
           </div>
         )}
       </main>
-       {showModal && (
+
+      {/* Resume Modal */}
+      {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-white rounded-xl p-6 max-w-sm text-center">
             <h2 className="text-lg font-bold mb-4">Upload Resume First</h2>
@@ -161,5 +164,5 @@ useEffect(() => {
         </div>
       )}
     </div>
-  )
+  );
 }
