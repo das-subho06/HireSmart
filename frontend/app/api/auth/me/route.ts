@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
   const user = await User.findById(decoded.userId).select("name email role company");
 
   if (!user) return NextResponse.json({ message: "User not found" }, { status: 404 });
-
+  console.log("2. Data straight from MongoDB:", user);
   return NextResponse.json({ user });
 }
 export async function PATCH(req: NextRequest) {

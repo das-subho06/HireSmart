@@ -31,7 +31,7 @@ export async function googleSignIn({ token, role }: { token: string; role: strin
     user.name = name;
     user.role = role;
     user.googleId = googleId; // in case it was missing
-    user.company = ""; // force modal
+   // user.company = ""; // force modal
     await user.save(); // ensures correct _id
   } else {
     // New user
