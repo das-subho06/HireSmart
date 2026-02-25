@@ -12,59 +12,68 @@ import axios from "axios"
 
 const statuses = ["All", "New", "Reviewed", "Shortlisted", "Rejected"] as const
 
-// Temporary interfaces so TypeScript doesn't yell at us
+// --- STANDARD ML LISTS ---
+const JOB_ROLES = [
+  'Software Engineer', 'Frontend Developer', 'Backend Developer', 'Full Stack Developer',
+  'Data Scientist', 'Product Manager', 'UI/UX Designer', 'DevOps Engineer',
+  'QA Engineer', 'Business Analyst', 'Project Manager', 'Marketing Manager',
+];
+
+const TECHNICAL_SKILLS = [
+  'JavaScript', 'TypeScript', 'Python', 'Java', 'C++', 'C#', 'Go', 'Rust', 'Ruby', 'PHP',
+  'SQL', 'NoSQL', 'React', 'Next.js', 'Node.js', 'Express.js', 'Django', 'Flask',
+  'Spring Boot', 'Angular', 'Vue.js', 'HTML', 'CSS', 'Tailwind CSS', 'SASS/SCSS',
+  'GraphQL', 'REST API Development', 'Docker', 'Kubernetes', 'AWS', 'Azure', 'GCP',
+  'CI/CD', 'Git & GitHub', 'Unit Testing / Jest', 'Selenium', 'Machine Learning',
+  'Deep Learning', 'Data Analysis / Pandas', 'Data Visualization / D3.js',
+  'TensorFlow', 'PyTorch', 'MongoDB', 'PostgreSQL', 'MySQL', 'Redis',
+  'ElasticSearch', 'Blockchain',
+];
+
 interface Job {
   _id: string;
   title: string;
   location: string;
   skills: string[];
-  applicants: string[]; // Array of applicant IDs
+  applicants: string[];
   createdAt: string;
 }
 
 export default function RecruiterDashboard() {
-  // Auth & User State
   const [company, setCompany] = useState("");
   const [companySet, setCompanySet] = useState(false);
   const [recruiterName, setRecruiterName] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
-  // REAL Data States (No more dummy data!)
   const [jobs, setJobs] = useState<Job[]>([]);
   const [applicants, setApplicants] = useState<any[]>([]); 
 
-  // UI Filters
   const [search, setSearch] = useState("");
   const [activeStatus, setActiveStatus] = useState<string>("All");
-  const [selectedJobId, setSelectedJobId] = useState<string>("All"); // To filter applicants by specific job
+  const [selectedJobId, setSelectedJobId] = useState<string>("All");
 
-  // Modal States
   const [isJobModalOpen, setIsJobModalOpen] = useState(false);
+  
+  // Updated Job Form State to hold an array of skills
   const [jobForm, setJobForm] = useState({
     title: "",
     description: "",
-    skills: "",
+    skills: [] as string[],
     location: "",
   });
 
-  // Fetch all real data on load
   useEffect(() => {
     async function fetchDashboardData() {
       try {
-        // 1. Get Recruiter Info
         const userRes = await axios.get("/api/auth/me");
         setCompany(userRes.data.user.company);
         setRecruiterName(userRes.data.user.name);
         if (userRes.data.user.company) setCompanySet(true);
 
-        // 2. Get Real Jobs posted by this recruiter
-        // (We will build this API route next!)
         const jobsRes = await axios.get("/api/jobs/me").catch(() => ({ data: { jobs: [] } }));
         setJobs(jobsRes.data.jobs || []);
 
-        // 3. Get Real Applicants
-        // (We will build this API route later)
-        const applicantsRes = await axios.get("/api/applicants/me");
+        const applicantsRes = await axios.get("/api/applicants/me").catch(() => ({ data: { applicants: [] } }));
         setApplicants(applicantsRes.data.applicants || []);
 
       } catch (err) {
@@ -78,25 +87,33 @@ export default function RecruiterDashboard() {
 
   const handlePostJob = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (jobForm.skills.length === 0) {
+      return alert("Please select at least one technical skill.");
+    }
+    
     try {
-      const res = await axios.post("/api/jobs", {
-        ...jobForm,
-        skills: jobForm.skills.split(",").map(skill => skill.trim())
-      });
+      const res = await axios.post("/api/jobs", jobForm);
       
       alert("Job posted successfully!");
       setIsJobModalOpen(false);
-      setJobForm({ title: "", description: "", skills: "", location: "" });
+      setJobForm({ title: "", description: "", skills: [], location: "" });
       
-      // Instantly add the new job to the UI without refreshing
-      setJobs([...jobs, res.data.job]); 
+      setJobs([res.data.job, ...jobs]); 
     } catch (err) {
       console.error(err);
       alert("Failed to post job");
     }
   };
 
-  // Filter real applicants
+  const handleSkillToggle = (skill: string) => {
+    setJobForm(prev => ({
+      ...prev,
+      skills: prev.skills.includes(skill)
+        ? prev.skills.filter(s => s !== skill)
+        : [...prev.skills, skill]
+    }));
+  };
+
   const filteredApplicants = applicants.filter((c) => {
     const matchesSearch =
       c.name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -158,9 +175,6 @@ export default function RecruiterDashboard() {
             </div>
           </div>
 
-          {/* =========================================
-              NEW SECTION: MY POSTED JOBS 
-              ========================================= */}
           <section className="mb-12">
             <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
               <Briefcase className="h-5 w-5" />
@@ -195,7 +209,7 @@ export default function RecruiterDashboard() {
                     </div>
                     <Button 
                       variant={selectedJobId === job._id ? "default" : "outline"} 
-                      className="w-full text-sm"
+                      className="w-full text-sm mt-4"
                       onClick={() => setSelectedJobId(selectedJobId === job._id ? "All" : job._id)}
                     >
                       {selectedJobId === job._id ? "Viewing Applicants..." : "View Applicants"}
@@ -208,7 +222,6 @@ export default function RecruiterDashboard() {
 
           <hr className="my-8 border-border" />
 
-          {/* Stats for Applicants */}
           <h2 className="text-xl font-bold mb-4">Applicant Overview {selectedJobId !== "All" && "(Filtered by Job)"}</h2>
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             {stats.map((stat) => (
@@ -226,7 +239,6 @@ export default function RecruiterDashboard() {
             ))}
           </div>
 
-          {/* Search & Filters */}
           <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -256,16 +268,14 @@ export default function RecruiterDashboard() {
             </div>
           </div>
 
-          {/* Candidates Grid */}
-          {/* Candidates Grid */}
-            <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {filteredApplicants.map((candidate) => (
-                <CandidateCard 
-                  key={`${candidate.id || candidate._id}-${candidate.jobId}`} 
-                  candidate={candidate} 
-                />
-              ))}
-            </div>
+          <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {filteredApplicants.map((candidate) => (
+              <CandidateCard 
+                key={`${candidate.id || candidate._id}-${candidate.jobId}`} 
+                candidate={candidate} 
+              />
+            ))}
+          </div>
 
           {filteredApplicants.length === 0 && (
             <div className="mt-16 text-center">
@@ -278,7 +288,6 @@ export default function RecruiterDashboard() {
         </main>
       </div>
 
-      {/* Existing Company Prompt Modal */}
       {!companySet && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
           <div className="rounded-xl bg-card p-8 shadow-lg w-96 backdrop-blur-md">
@@ -307,23 +316,32 @@ export default function RecruiterDashboard() {
         </div>
       )}
 
-      {/* Job Posting Modal */}
+      {/* UPDATED Job Posting Modal */}
       {isJobModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
-          <div className="rounded-xl bg-card p-8 shadow-lg w-[500px] backdrop-blur-md max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold mb-6">Post a New Job</h2>
-            <form onSubmit={handlePostJob} className="flex flex-col gap-4">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50 p-4">
+          <div className="rounded-xl bg-card p-8 shadow-lg w-full max-w-2xl bg-white max-h-[90vh] flex flex-col">
+            <h2 className="text-2xl font-bold mb-6 shrink-0">Post a New Job</h2>
+            
+            <form onSubmit={handlePostJob} className="flex flex-col gap-4 overflow-y-auto pr-2 pb-4">
+              
+              {/* Dropdown for Job Role */}
               <div>
-                <label className="text-sm font-medium">Job Title</label>
-                <Input 
-                  required 
-                  placeholder="e.g. Senior Frontend Developer" 
+                <label className="text-sm font-medium mb-1 block">Job Title / Role</label>
+                <select
+                  required
                   value={jobForm.title}
                   onChange={(e) => setJobForm({...jobForm, title: e.target.value})}
-                />
+                  className="w-full px-3 py-2 border border-input rounded-md bg-background focus:ring-1 focus:ring-ring"
+                >
+                  <option value="" disabled>Select a predefined role...</option>
+                  {JOB_ROLES.map(role => (
+                    <option key={role} value={role}>{role}</option>
+                  ))}
+                </select>
               </div>
+
               <div>
-                <label className="text-sm font-medium">Job Description / Specifications</label>
+                <label className="text-sm font-medium mb-1 block">Job Description / Specifications</label>
                 <textarea 
                   required
                   className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -332,17 +350,27 @@ export default function RecruiterDashboard() {
                   onChange={(e) => setJobForm({...jobForm, description: e.target.value})}
                 />
               </div>
+
+              {/* Scrollable Checkbox Grid for Technical Skills */}
               <div>
-                <label className="text-sm font-medium">Required Skills (comma separated)</label>
-                <Input 
-                  required 
-                  placeholder="e.g. React, Node.js, TypeScript" 
-                  value={jobForm.skills}
-                  onChange={(e) => setJobForm({...jobForm, skills: e.target.value})}
-                />
+                <label className="text-sm font-medium mb-1 block">Required Technical Skills <span className="text-xs text-muted-foreground">(Select all that apply)</span></label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 border border-input rounded-md p-4 max-h-48 overflow-y-auto bg-muted/10">
+                  {TECHNICAL_SKILLS.map((skill) => (
+                    <label key={skill} className="flex items-center gap-2 cursor-pointer hover:bg-muted/30 p-1 rounded transition-colors">
+                      <input
+                        type="checkbox"
+                        className="accent-primary"
+                        checked={jobForm.skills.includes(skill)}
+                        onChange={() => handleSkillToggle(skill)}
+                      />
+                      <span className="text-sm text-foreground">{skill}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
+
               <div>
-                <label className="text-sm font-medium">Location</label>
+                <label className="text-sm font-medium mb-1 block">Location</label>
                 <Input 
                   required 
                   placeholder="e.g. Remote, New York, Bangalore" 
@@ -350,7 +378,8 @@ export default function RecruiterDashboard() {
                   onChange={(e) => setJobForm({...jobForm, location: e.target.value})}
                 />
               </div>
-              <div className="flex gap-4 mt-4">
+
+              <div className="flex gap-4 mt-4 pt-4 border-t border-border shrink-0">
                 <Button type="button" variant="outline" className="flex-1" onClick={() => setIsJobModalOpen(false)}>
                   Cancel
                 </Button>

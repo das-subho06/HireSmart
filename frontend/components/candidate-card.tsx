@@ -1,5 +1,5 @@
 "use client"
-
+import { useRouter } from "next/navigation";
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -21,12 +21,12 @@ export interface RealCandidate {
   email: string;
   phone: string;
   experience: string;
-  technicalSkills: string[]; // Replacing "skills"
-  resumeFileUrl: string;     // Replacing "resumeFile"
-  createdAt: string;         // Used for "appliedDate"
+  technicalSkills: string[]; 
+  resumeFileUrl: string;     
+  createdAt: string;         
   status: string;
   appliedRole?: string;
-  location?: string;         // Replacing "education" which wasn't in DB
+  location?: string;         
   jobId?: string;
 }
 
@@ -46,6 +46,8 @@ function statusColor(status: string) {
 }
 
 export function CandidateCard({ candidate }: { candidate: RealCandidate }) {
+  // MOVED THIS INSIDE THE FUNCTION!
+  const router = useRouter();
   const [open, setOpen] = useState(false)
 
   // Safely format the date
@@ -152,7 +154,6 @@ export function CandidateCard({ candidate }: { candidate: RealCandidate }) {
                 <span className="text-foreground">{candidate.experience || "No experience listed"}</span>
               </div>
               <div className="flex items-center gap-2 text-sm">
-                {/* Changed from Education to Location since Location is in your DB */}
                 <MapPin className="h-4 w-4 text-muted-foreground" />
                 <span className="text-foreground">{candidate.location || "Location not provided"}</span>
               </div>
@@ -181,7 +182,6 @@ export function CandidateCard({ candidate }: { candidate: RealCandidate }) {
                 disabled={!candidate.resumeFileUrl}
                 onClick={() => {
                   if (candidate.resumeFileUrl) {
-                    // Opens the PDF in a new browser tab!
                     window.open(candidate.resumeFileUrl, "_blank");
                   }
                 }}
@@ -189,6 +189,17 @@ export function CandidateCard({ candidate }: { candidate: RealCandidate }) {
                 View
               </Button>
             </div>
+
+            {/* AI Analysis Button */}
+            <div className="flex gap-2 w-full mt-2">
+              <Button 
+                className="flex-1 bg-indigo-600 hover:bg-indigo-700 font-semibold"
+                onClick={() => router.push(`/recruiter/analysis/${candidate.id || candidate._id}/${candidate.jobId}`)}
+              >
+                View AI Analysis ✨
+              </Button>
+            </div>
+
           </div>
         </DialogContent>
       </Dialog>
