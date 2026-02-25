@@ -64,8 +64,8 @@ export default function RecruiterDashboard() {
 
         // 3. Get Real Applicants
         // (We will build this API route later)
-        // const applicantsRes = await axios.get("/api/applicants/me");
-        // setApplicants(applicantsRes.data.applicants || []);
+        const applicantsRes = await axios.get("/api/applicants/me");
+        setApplicants(applicantsRes.data.applicants || []);
 
       } catch (err) {
         console.error("Error fetching dashboard data:", err);
@@ -100,7 +100,7 @@ export default function RecruiterDashboard() {
   const filteredApplicants = applicants.filter((c) => {
     const matchesSearch =
       c.name?.toLowerCase().includes(search.toLowerCase()) ||
-      c.skills?.some((s: string) => s.toLowerCase().includes(search.toLowerCase()));
+      c.technicalSkills?.some((s: string) => s.toLowerCase().includes(search.toLowerCase()));
     const matchesStatus = activeStatus === "All" || c.status === activeStatus;
     const matchesJob = selectedJobId === "All" || c.jobId === selectedJobId;
     return matchesSearch && matchesStatus && matchesJob;
@@ -257,11 +257,15 @@ export default function RecruiterDashboard() {
           </div>
 
           {/* Candidates Grid */}
-          <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {filteredApplicants.map((candidate) => (
-              <CandidateCard key={candidate.id || candidate._id} candidate={candidate} />
-            ))}
-          </div>
+          {/* Candidates Grid */}
+            <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {filteredApplicants.map((candidate) => (
+                <CandidateCard 
+                  key={`${candidate.id || candidate._id}-${candidate.jobId}`} 
+                  candidate={candidate} 
+                />
+              ))}
+            </div>
 
           {filteredApplicants.length === 0 && (
             <div className="mt-16 text-center">

@@ -50,3 +50,26 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+// Force dynamic fetching so candidates always see the newest jobs
+export const dynamic = "force-dynamic";
+
+export async function GET(req: NextRequest) {
+  try {
+    await connectDb();
+
+    // Fetch all jobs. 
+    // We use .populate() to pull the recruiter's company name from the User collection
+    // so candidates can see which company posted the job.
+    const jobs = await Job.find()
+      .populate("recruiterId", "company name") 
+      .sort({ createdAt: -1 });
+
+    return NextResponse.json({ jobs }, { status: 200 });
+  } catch (error: any) {
+    console.error("GET /api/jobs Error:", error);
+    return NextResponse.json(
+      { message: "Internal Server Error", error: error.message },
+      { status: 500 }
+    );
+  }
+}
