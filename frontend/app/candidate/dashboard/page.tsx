@@ -24,25 +24,39 @@ export default function CandidateDashboard() {
   useEffect(() => {
     async function fetchData() {
       try {
-        // 1. Fetch Candidate Name
+        //  Fetch Candidate Name
         const userRes = await axios.get("/api/auth/me");
         setCandidateName(userRes.data.user.name);
         
-        // 2. Safely Check Profile Status
+        //  Safely Check Profile Status
         let resumeExists = false;
+        let myCandidateId = null; // 🚨 NEW: Variable to hold the candidate's DB ID
+
         try {
           const profileRes = await axios.get("/api/auth/profile", { withCredentials: true });
           resumeExists = !!profileRes.data.candidate?.resumeFileUrl;
+          
+          // 🚨 NEW: Grab the candidate's ID from the profile response
+          myCandidateId = profileRes.data.candidate?._id; 
+          
           setHasResume(resumeExists);
         } catch (profileErr) {
-          // If profile fetch fails (e.g. 404), they just don't have a resume yet
           setHasResume(false);
         }
 
-        // 3. ONLY fetch jobs if they have actually uploaded a resume!
-        if (resumeExists) {
+        //  Fetch jobs and pre-fill the "Applied" buttons!
+        if (resumeExists && myCandidateId) {
           const jobsRes = await axios.get("/api/jobs");
-          setJobs(jobsRes.data.jobs || []);
+          const fetchedJobs = jobsRes.data.jobs || [];
+          setJobs(fetchedJobs);
+
+          // Filter through all jobs and find the ones where your ID is already in the applicants array
+          const alreadyAppliedJobIds = fetchedJobs
+            .filter((job: any) => job.applicants && job.applicants.includes(myCandidateId))
+            .map((job: any) => job._id);
+
+          // Pre-fill the state so the buttons instantly show as "Applied"
+          setAppliedJobs(alreadyAppliedJobIds); 
         }
       } catch (err) {
         console.error("Dashboard error:", err);
